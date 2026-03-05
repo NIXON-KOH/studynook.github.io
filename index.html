@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>focus nook · transparent · forest default</title>
+    <title>focus nook</title>
     <!-- clean favicon – no more 404s -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>">
     <!-- Font Awesome 6 -->
@@ -225,20 +225,6 @@
             letter-spacing: 4px; text-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .sound-grid {
-            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;
-        }
-        .sound-btn {
-            flex: 1 0 calc(50% - 10px); background: rgba(193,123,94,0.12);
-            border: 1px solid var(--clay); color: var(--walnut); padding: 12px;
-            border-radius: 60px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            font-weight: 500; backdrop-filter: blur(4px);
-        }
-        .sound-btn i { font-size: 1.2rem; }
-        .sound-btn:hover { background: var(--clay); color: white; transform: scale(0.98); border-color: transparent; }
-        .sound-btn.playing { background: var(--sage); color: white; border-color: var(--sage); box-shadow: 0 0 0 2px rgba(138,167,125,0.5); }
-
         .bg-selector {
             display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;
         }
@@ -345,14 +331,14 @@
 
 <script>
 (function() {
-    const PAD_IDS = ['pomodoro', 'todo', 'notes', 'spotify', 'ambient', 'motivation', 'settings', 'distraction'];
+    // Removed 'ambient' from PAD_IDS – ambient noise feature removed entirely
+    const PAD_IDS = ['pomodoro', 'todo', 'notes', 'spotify', 'motivation', 'settings', 'distraction'];
     const DEFAULT_LAYOUT = {
         pomodoro:   { x: 40, y: 70, w: 320, h: 380 },
         todo:       { x: 380, y: 70, w: 320, h: 320 },
         notes:      { x: 720, y: 70, w: 300, h: 220 },
         spotify:    { x: 40, y: 410, w: 340, h: 280 },
-        ambient:    { x: 400, y: 410, w: 320, h: 280 },
-        motivation: { x: 740, y: 320, w: 300, h: 240 },
+        motivation: { x: 400, y: 410, w: 300, h: 240 },
         settings:   { x: 40, y: 660, w: 360, h: 400 },
         distraction: { x: 430, y: 670, w: 300, h: 200 }
     };
@@ -381,12 +367,8 @@
     let todoItems = [];
     let notesText = '';
 
-    // ---------- ambient sounds using Web Audio API (no external files, no CORS) ----------
+    // ----- gentle chime (kept for timer & distractions, not ambient) -----
     let audioContext = null;
-    let currentSound = null; // { type, nodes: [], gainNode, stop() }
-    let currentSoundKey = null;
-
-    // Initialize AudioContext on first user interaction
     function getAudioContext() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -394,217 +376,10 @@
         return audioContext;
     }
 
-    // Create a white noise buffer (reused)
-    let noiseBuffer = null;
-    function getNoiseBuffer() {
-        if (noiseBuffer) return noiseBuffer;
-        const ctx = getAudioContext();
-        const bufferSize = 2 * ctx.sampleRate; // 2 seconds of noise
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
-        noiseBuffer = buffer;
-        return noiseBuffer;
-    }
-
-    function stopAmbient() {
-        if (currentSound) {
-            try {
-                currentSound.stop();
-            } catch (e) {}
-            currentSound = null;
-        }
-        currentSoundKey = null;
-        document.querySelectorAll('.sound-btn').forEach(btn => btn.classList.remove('playing'));
-    }
-
-    async function playAmbient(type) {
-        stopAmbient();
-
-        const ctx = getAudioContext();
-        // Resume context if suspended (browser autoplay policy)
-        if (ctx.state === 'suspended') {
-            await ctx.resume();
-        }
-
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = loadAmbientVolume();
-        gainNode.connect(ctx.destination);
-
-        let sourceNode;
-        let stopFn;
-
-        // Create sound based on type
-        if (type === 'white noise') {
-            // Simple white noise using buffer loop
-            const buffer = getNoiseBuffer();
-            sourceNode = ctx.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.loop = true;
-            sourceNode.connect(gainNode);
-            sourceNode.start();
-            stopFn = () => {
-                try {
-                    sourceNode.stop();
-                    sourceNode.disconnect();
-                } catch (e) {}
-            };
-        } else if (type === 'rain') {
-            // Filtered noise to simulate rain
-            const buffer = getNoiseBuffer();
-            sourceNode = ctx.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.loop = true;
-
-            const bandpass = ctx.createBiquadFilter();
-            bandpass.type = 'bandpass';
-            bandpass.frequency.value = 400;
-            bandpass.Q.value = 0.5;
-
-            const lowShelf = ctx.createBiquadFilter();
-            lowShelf.type = 'lowshelf';
-            lowShelf.frequency.value = 200;
-            lowShelf.gain.value = -10;
-
-            sourceNode.connect(bandpass);
-            bandpass.connect(lowShelf);
-            lowShelf.connect(gainNode);
-            sourceNode.start();
-            stopFn = () => {
-                try {
-                    sourceNode.stop();
-                    sourceNode.disconnect();
-                } catch (e) {}
-            };
-        } else if (type === 'fireplace') {
-            // Crackling noise: short noise bursts modulated by low-frequency oscillator
-            const buffer = getNoiseBuffer();
-            sourceNode = ctx.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.loop = true;
-
-            const crackleFilter = ctx.createBiquadFilter();
-            crackleFilter.type = 'lowpass';
-            crackleFilter.frequency.value = 800;
-
-            const lfo = ctx.createOscillator();
-            lfo.type = 'sine';
-            lfo.frequency.value = 2; // 2 Hz modulation
-
-            const lfoGain = ctx.createGain();
-            lfoGain.gain.value = 0.4; // modulation depth
-
-            lfo.connect(lfoGain);
-            lfoGain.connect(gainNode.gain); // modulate volume
-
-            sourceNode.connect(crackleFilter);
-            crackleFilter.connect(gainNode);
-            sourceNode.start();
-            lfo.start();
-            stopFn = () => {
-                try {
-                    sourceNode.stop();
-                    sourceNode.disconnect();
-                    lfo.stop();
-                    lfo.disconnect();
-                } catch (e) {}
-            };
-            // Keep reference to lfo for stopping
-            sourceNode._extraNodes = [lfo, lfoGain];
-        } else if (type === 'forest') {
-            // Forest: combination of low-frequency noise + occasional high-pitched tones (simulate birds)
-            const buffer = getNoiseBuffer();
-            sourceNode = ctx.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.loop = true;
-
-            const lowpass = ctx.createBiquadFilter();
-            lowpass.type = 'lowpass';
-            lowpass.frequency.value = 1500;
-
-            const highpass = ctx.createBiquadFilter();
-            highpass.type = 'highpass';
-            highpass.frequency.value = 300;
-
-            sourceNode.connect(lowpass);
-            lowpass.connect(highpass);
-            highpass.connect(gainNode);
-            sourceNode.start();
-
-            // Add some random high-pitched oscillator to simulate bird chirps (very subtle)
-            const chirpOsc = ctx.createOscillator();
-            chirpOsc.type = 'sine';
-            chirpOsc.frequency.value = 3000;
-            const chirpGain = ctx.createGain();
-            chirpGain.gain.value = 0.02; // very quiet
-            chirpOsc.connect(chirpGain);
-            chirpGain.connect(gainNode);
-            chirpOsc.start();
-
-            stopFn = () => {
-                try {
-                    sourceNode.stop();
-                    sourceNode.disconnect();
-                    chirpOsc.stop();
-                    chirpOsc.disconnect();
-                } catch (e) {}
-            };
-            sourceNode._extraNodes = [chirpOsc, chirpGain];
-        } else {
-            // fallback to white noise
-            const buffer = getNoiseBuffer();
-            sourceNode = ctx.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.loop = true;
-            sourceNode.connect(gainNode);
-            sourceNode.start();
-            stopFn = () => {
-                try {
-                    sourceNode.stop();
-                    sourceNode.disconnect();
-                } catch (e) {}
-            };
-        }
-
-        // Store sound object
-        currentSound = {
-            type,
-            gainNode,
-            stop: () => {
-                stopFn();
-                if (sourceNode._extraNodes) {
-                    sourceNode._extraNodes.forEach(n => {
-                        try { n.stop(); } catch (e) {}
-                        try { n.disconnect(); } catch (e) {}
-                    });
-                }
-                gainNode.disconnect();
-            }
-        };
-        currentSoundKey = type;
-
-        // Update UI
-        document.querySelectorAll('.sound-btn').forEach(btn => {
-            btn.classList.toggle('playing', btn.dataset.sound === type);
-        });
-    }
-
-    function changeAmbientVolume(val) {
-        if (currentSound && currentSound.gainNode) {
-            currentSound.gainNode.gain.value = val;
-        }
-        saveAmbientVolume(val);
-        const slider = document.getElementById('ambientVolume');
-        if (slider) slider.style.setProperty('--fill', (val * 100) + '%');
-    }
-
     function playGentleChime() {
-        // short chime using AudioContext
         try {
             const ctx = getAudioContext();
-            if (ctx.state === 'suspended') return; // don't force resume
+            if (ctx.state === 'suspended') return;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
@@ -636,6 +411,8 @@
         const saved = localStorage.getItem('cozyNook_layout');
         let loaded = {};
         if (saved) try { loaded = JSON.parse(saved); } catch(e) {}
+        // Remove any stray 'ambient' from saved layout (if present)
+        delete loaded.ambient;
         return { ...DEFAULT_LAYOUT, ...loaded };
     }
     let layout = loadLayout();
@@ -644,6 +421,7 @@
     function loadMinimized() {
         const saved = localStorage.getItem('cozyNook_minimized');
         if (saved) try { minimizedState = JSON.parse(saved); } catch(e) { minimizedState = {}; }
+        delete minimizedState.ambient; // clean up
     }
     loadMinimized();
     function saveMinimized() { localStorage.setItem('cozyNook_minimized', JSON.stringify(minimizedState)); }
@@ -678,9 +456,6 @@
 
     function loadSpotifyId() { return localStorage.getItem('cozyNook_spotify_id'); }
     function saveSpotifyId(id) { localStorage.setItem('cozyNook_spotify_id', id); }
-
-    function loadAmbientVolume() { return parseFloat(localStorage.getItem('cozyNook_ambientVolume')) || 0.5; }
-    function saveAmbientVolume(vol) { localStorage.setItem('cozyNook_ambientVolume', vol); }
 
     function loadDistractionCount() {
         const saved = localStorage.getItem('cozyNook_distraction');
@@ -1031,13 +806,11 @@
     }
     document.addEventListener('keydown', handleKeyDown);
 
-    // Expose
+    // Expose functions (removed ambient-related)
     window.toggleTimer = toggleTimer; window.resetTimer = resetTimer; window.updateTimerSettings = updateTimerSettings;
     window.skipTimerPhase = skipTimerPhase; window.setTimerMode = setTimerMode;
     window.addTodo = addTodo; window.clearCompletedTodos = clearCompletedTodos;
     window.loadSpotify = loadSpotify; 
-    window.playAmbient = playAmbient; window.stopAmbient = stopAmbient;
-    window.changeAmbientVolume = changeAmbientVolume; 
     window.changeBackground = changeBackground; window.randomBackground = randomBackground;
     window.uploadWallpaper = uploadWallpaper; window.clearCustomBg = clearCustomBg;
     window.resetLayout = resetLayout; window.clearStorage = clearStorage; window.toggleMinimize = toggleMinimize;
@@ -1076,7 +849,6 @@
             todo: '<i class="fas fa-check-circle"></i>',
             notes: '<i class="fas fa-pen"></i>',
             spotify: '<i class="fab fa-spotify"></i>',
-            ambient: '<i class="fas fa-cloud-rain"></i>',
             motivation: '<i class="fas fa-quote-right"></i>',
             settings: '<i class="fas fa-sliders-h"></i>',
             distraction: '<i class="fas fa-brain"></i>'
@@ -1146,31 +918,6 @@
                     <button onclick="loadPresetPlaylist('37i9dQZF1DX3Ogo9pFvBkY')" class="secondary no-drag"><i class="fas fa-headphones"></i> Focus</button>
                 </div>`;
             const lastId = loadSpotifyId(); if (lastId) { document.getElementById('spotifyInput').value = lastId; embedSpotify(lastId, document.getElementById('spotifyEmbed')); }
-        } else if (id === 'ambient') {
-            // ✅ FIXED: no external URLs – built‑in Web Audio synthesis
-            const vol = loadAmbientVolume();
-            cont.innerHTML = `
-                <div class="sound-grid">
-                    <button class="sound-btn no-drag" data-sound="rain"><i class="fas fa-cloud-rain"></i> rain</button>
-                    <button class="sound-btn no-drag" data-sound="fireplace"><i class="fas fa-fire"></i> fireplace</button>
-                    <button class="sound-btn no-drag" data-sound="forest"><i class="fas fa-tree"></i> forest</button>
-                    <button class="sound-btn no-drag" data-sound="white noise"><i class="fas fa-wave-square"></i> white noise</button>
-                </div>
-                <div class="flex-row"><button onclick="stopAmbient()" class="secondary no-drag"><i class="fas fa-stop"></i> Stop</button></div>
-                <label><i class="fas fa-volume-high"></i> Volume <input type="range" id="ambientVolume" min="0" max="100" value="${vol*100}" oninput="changeAmbientVolume(this.value/100)" class="no-drag"></label>
-            `;
-            // Attach click handlers for sound buttons
-            cont.querySelectorAll('.sound-btn').forEach(btn => {
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    playAmbient(btn.dataset.sound);
-                };
-            });
-            // Set initial volume slider fill
-            setTimeout(() => {
-                const slider = document.getElementById('ambientVolume');
-                if (slider) slider.style.setProperty('--fill', (vol * 100) + '%');
-            }, 0);
         } else if (id === 'motivation') {
             const quoteDiv = document.createElement('div'); quoteDiv.className = 'quote-box';
             currentQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
