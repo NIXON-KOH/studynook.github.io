@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>focus nook</title>
-    <!-- clean favicon – no more 404s -->
+    <!-- leaf favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.17/dist/interact.min.js"></script>
     <style>
-        /* ---------- your existing styles (unchanged) ---------- */
+        /* ---------- base styles (unchanged, only additions for toasts) ---------- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
@@ -18,10 +18,25 @@
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            transition: background-image 0.3s ease, background-color 0.3s, color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
             min-height: 100vh;
             padding: 20px;
             color: #2c3e2f;
+        }
+        #bgVideo, #bgYoutube {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2;
+            pointer-events: none;
+            display: none;
+            border: 0;
+        }
+        #bgYoutube {
+            z-index: -2;
         }
         body.dark-mode {
             --clay: #c27e5e;
@@ -148,65 +163,37 @@
         .no-drag { cursor: auto; }
         .no-drag * { pointer-events: auto; }
 
-        /* ----- custom checkboxes ----- */
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            user-select: none;
-            margin: 6px 0;
-        }
-        .checkbox-wrapper input[type="checkbox"] {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; margin: 6px 0; }
+        .checkbox-wrapper input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
         .checkbox-wrapper .checkmark {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            background: rgba(255,255,255,0.3);
-            border: 2px solid var(--clay);
-            border-radius: 6px;
-            transition: 0.1s;
-            color: white;
-            font-size: 14px;
-            backdrop-filter: blur(2px);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; background: rgba(255,255,255,0.3);
+            border: 2px solid var(--clay); border-radius: 6px; transition: 0.1s;
+            color: white; font-size: 14px; backdrop-filter: blur(2px);
         }
-        .checkbox-wrapper input[type="checkbox"]:checked + .checkmark {
-            background: var(--clay);
-            border-color: var(--clay);
-        }
-        .checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after {
-            content: "✓";
-            font-weight: bold;
-        }
-        .checkbox-wrapper:hover .checkmark {
-            background: rgba(193,123,94,0.3);
-        }
+        .checkbox-wrapper input[type="checkbox"]:checked + .checkmark { background: var(--clay); border-color: var(--clay); }
+        .checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after { content: "✓"; font-weight: bold; }
+        .checkbox-wrapper:hover .checkmark { background: rgba(193,123,94,0.3); }
 
-        .todo-item {
-            display: flex; align-items: center; gap: 12px; padding: 8px 0;
+        /* progress bar */
+        .progress-bar {
+            width: 100%; height: 24px; background: rgba(193,123,94,0.2); border-radius: 30px; margin: 10px 0; overflow: hidden;
+            border: 1px solid var(--clay);
         }
-        .todo-item .todo-check {
-            font-size: 1.4rem; color: var(--clay); cursor: pointer;
-            width: 24px; text-align: center; transition: 0.1s;
+        .progress-fill {
+            height: 100%; background: var(--sage); width: 0%; transition: width 0.2s; border-radius: 30px;
         }
+        .xp-bar { background: #d4a373; }
+        .level-badge { font-weight: bold; background: var(--clay); color: white; border-radius: 40px; padding: 4px 12px; display: inline-block; }
+
+        .todo-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+        .todo-item .todo-check { font-size: 1.4rem; color: var(--clay); cursor: pointer; width: 24px; text-align: center; transition: 0.1s; }
         .todo-item .todo-check:hover { transform: scale(1.1); }
         .todo-item .todo-text { flex: 1; font-size: 0.95rem; }
-        .todo-item .delete-todo {
-            background: none; border: none; color: #b95c3b; font-size: 1.3rem;
-            cursor: pointer; padding: 0 5px; line-height: 1;
-        }
+        .todo-item .delete-todo { background: none; border: none; color: #b95c3b; font-size: 1.3rem; cursor: pointer; padding: 0 5px; line-height: 1; }
         .todo-item .todo-text.completed { text-decoration: line-through; opacity: 0.7; }
 
-        .mode-selector {
-            display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;
-        }
+        .mode-selector { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
         .mode-btn {
             background: rgba(193,123,94,0.15); border: 1px solid var(--clay);
             border-radius: 40px; padding: 6px 14px; font-size: 0.85rem;
@@ -214,20 +201,12 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .mode-btn i { font-size: 1rem; color: var(--clay); }
-        .mode-btn.active {
-            background: var(--clay); color: white; border-color: var(--clay);
-        }
+        .mode-btn.active { background: var(--clay); color: white; border-color: var(--clay); }
         .mode-btn.active i { color: white; }
 
-        .timer-display {
-            font-size: 3.6rem; font-weight: 300; text-align: center; margin: 12px 0;
-            font-family: 'Fira Mono', 'Courier New', monospace; color: var(--walnut);
-            letter-spacing: 4px; text-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
+        .timer-display { font-size: 3.6rem; font-weight: 300; text-align: center; margin: 12px 0; font-family: 'Fira Mono', 'Courier New', monospace; color: var(--walnut); letter-spacing: 4px; text-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
-        .bg-selector {
-            display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;
-        }
+        .bg-selector { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
         .bg-option { flex: 1 0 70px; }
         .bg-option input[type="radio"] { display: none; }
         .bg-option label {
@@ -240,88 +219,59 @@
         .bg-option input[type="radio"]:checked + label { border-color: var(--clay); background: rgba(193,123,94,0.2); transform: scale(1.02); }
         .bg-option i { font-size: 1.6rem; color: var(--clay); }
 
-        .spotify-presets {
-            display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0;
-        }
-        .spotify-presets button {
-            flex: 1; background: rgba(138,167,125,0.2); color: var(--walnut);
-            border: 1px solid var(--sage); padding: 8px 10px;
-        }
+        .spotify-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .spotify-presets button { flex: 1; background: rgba(138,167,125,0.2); color: var(--walnut); border: 1px solid var(--sage); padding: 8px 10px; }
 
         .tab-toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #b84a3a; color: white; 
-            padding: 18px 40px; border-radius: 60px; font-size: 1.3rem; 
+            background: #b84a3a; color: white; padding: 18px 40px; border-radius: 60px; font-size: 1.3rem; 
             font-weight: 600; z-index: 3000; box-shadow: 0 20px 30px rgba(0,0,0,0.4); 
             display: flex; align-items: center; gap: 16px;
             animation: shake 0.4s ease, fadeSlide 0.3s ease;
             backdrop-filter: blur(8px); border: 2px solid rgba(255,200,150,0.5);
         }
-        @keyframes shake {
-            0%,100%{ transform: translateX(-50%) translateX(0); }
-            20%{ transform: translateX(-50%) translateX(-8px); }
-            40%{ transform: translateX(-50%) translateX(8px); }
-            60%{ transform: translateX(-50%) translateX(-4px); }
-            80%{ transform: translateX(-50%) translateX(4px); }
-        }
-        @keyframes fadeSlide {
-            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
+        @keyframes shake { 0%,100%{ transform: translateX(-50%) translateX(0); } 20%{ transform: translateX(-50%) translateX(-8px); } 40%{ transform: translateX(-50%) translateX(8px); } 60%{ transform: translateX(-50%) translateX(-4px); } 80%{ transform: translateX(-50%) translateX(4px); } }
+        @keyframes fadeSlide { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
         .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .mt-2 { margin-top: 16px; }
         .text-small { font-size: 0.8rem; opacity: 0.7; }
-        .quote-box {
-            background: rgba(255,255,255,0.25); border-radius: 20px; padding: 16px;
-            font-style: italic; border-left: 4px solid var(--clay);
-            font-size: 1rem; backdrop-filter: blur(4px);
-        }
+        .quote-box { background: rgba(255,255,255,0.25); border-radius: 20px; padding: 16px; font-style: italic; border-left: 4px solid var(--clay); font-size: 1rem; backdrop-filter: blur(4px); }
         .goal-input { border-radius: 30px; }
 
-        .distraction-count {
-            font-size: 2.5rem; font-weight: 300; text-align: center; margin: 10px 0;
-        }
+        .distraction-count { font-size: 2.5rem; font-weight: 300; text-align: center; margin: 10px 0; }
         .distraction-icon { font-size: 2rem; text-align: center; cursor: pointer; transition: transform 0.1s; }
         .distraction-icon:active { transform: scale(0.9); }
 
         input[type=range] {
-            width: 100%;
-            margin: 8px 0;
-            height: 8px;
+            width: 100%; margin: 8px 0; height: 8px;
             background: linear-gradient(90deg, var(--clay) 0%, var(--clay) var(--fill, 0%), rgba(193,123,94,0.2) var(--fill, 0%));
-            border-radius: 20px;
-            -webkit-appearance: none;
-            appearance: none;
+            border-radius: 20px; -webkit-appearance: none; appearance: none;
         }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            background: white;
-            border: 2px solid var(--clay);
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            margin-top: -7px;
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; background: white; border: 2px solid var(--clay); border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-top: -7px; }
+        input[type=range]::-moz-range-thumb { width: 22px; height: 22px; background: white; border: 2px solid var(--clay); border-radius: 50%; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { height: 8px; background: linear-gradient(90deg, var(--clay) 0%, var(--clay) var(--fill, 0%), rgba(193,123,94,0.2) var(--fill, 0%)); border-radius: 20px; }
+
+        /* XP toast */
+        .xp-toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--sage); color: white; padding: 12px 24px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: 500;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 5000;
+            animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+            display: flex; align-items: center; gap: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
         }
-        input[type=range]::-moz-range-thumb {
-            width: 22px;
-            height: 22px;
-            background: white;
-            border: 2px solid var(--clay);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            height: 8px;
-            background: linear-gradient(90deg, var(--clay) 0%, var(--clay) var(--fill, 0%), rgba(193,123,94,0.2) var(--fill, 0%));
-            border-radius: 20px;
-        }
+        .xp-toast i { font-size: 1.4rem; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
     </style>
 </head>
 <body>
+    <!-- Video backgrounds: both direct video and YouTube iframe -->
+    <video id="bgVideo" muted loop playsinline></video>
+    <iframe id="bgYoutube" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+
     <div class="header">
         <i class="fas fa-leaf"></i> focus nook
         <button class="exit-focus-btn" id="exitFocusBtn"><i class="fas fa-arrow-right-from-bracket"></i> exit focus</button>
@@ -329,10 +279,12 @@
     <div class="sidebar" id="sidebar"></div>
     <div id="app"></div>
 
+    <!-- XP toast container -->
+    <div id="xpToastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 5000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
 <script>
 (function() {
-    // Removed 'ambient' from PAD_IDS – ambient noise feature removed entirely
-    const PAD_IDS = ['pomodoro', 'todo', 'notes', 'spotify', 'motivation', 'settings', 'distraction'];
+    const PAD_IDS = ['pomodoro', 'todo', 'notes', 'spotify', 'motivation', 'settings', 'distraction', 'goal', 'gamification'];
     const DEFAULT_LAYOUT = {
         pomodoro:   { x: 40, y: 70, w: 320, h: 380 },
         todo:       { x: 380, y: 70, w: 320, h: 320 },
@@ -340,7 +292,9 @@
         spotify:    { x: 40, y: 410, w: 340, h: 280 },
         motivation: { x: 400, y: 410, w: 300, h: 240 },
         settings:   { x: 40, y: 660, w: 360, h: 400 },
-        distraction: { x: 430, y: 670, w: 300, h: 200 }
+        distraction: { x: 430, y: 670, w: 300, h: 200 },
+        goal:       { x: 750, y: 300, w: 300, h: 260 },
+        gamification: { x: 750, y: 580, w: 320, h: 280 }
     };
 
     const BG_PRESETS = {
@@ -349,6 +303,13 @@
         rain: { url: 'url("https://images.pexels.com/photos/125510/pexels-photo-125510.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")', icon: 'fa-cloud-rain' },
         mountains: { url: 'url("https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")', icon: 'fa-mountain' },
         library: { url: 'url("https://images.pexels.com/photos/3494806/pexels-photo-3494806.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")', icon: 'fa-book' }
+    };
+
+    // Video presets: now support both direct video files (type: 'direct') and YouTube (type: 'youtube')
+    const VIDEO_PRESETS = {
+        study3: { url: 'https://www.youtube.com/watch?v=gvi0H2E-XcI', label: 'Cafe', icon: 'fa-mug-hot', type: 'youtube', videoId: 'gvi0H2E-XcI' },
+        study4: { url: 'https://www.youtube.com/watch?v=SllpB3W5f6s', label: 'Academia', icon: 'fa-book', type: 'youtube', videoId: 'SllpB3W5f6s' },
+        study5: { url: 'https://www.youtube.com/watch?v=gq6DfoS-l9A', label: 'Idols Studying', icon: 'fa-video', type: 'youtube', videoId: 'gq6DfoS-l9A' }
     };
 
     let pads = {};
@@ -363,11 +324,22 @@
         targetTime: null
     };
 
+    // ----- focus time & gamification -----
+    let totalFocusSeconds = 0;
+    let dailyGoalSeconds = 7200; // 2 hours
+    let xpPoints = 0;
+    let level = 1;
+
+    let focusSessionStart = null;
+
     let distractionCount = 0;
     let todoItems = [];
     let notesText = '';
 
-    // ----- gentle chime (kept for timer & distractions, not ambient) -----
+    // Z-index management
+    let topZIndex = 100;
+
+    // ----- audio -----
     let audioContext = null;
     function getAudioContext() {
         if (!audioContext) {
@@ -375,7 +347,6 @@
         }
         return audioContext;
     }
-
     function playGentleChime() {
         try {
             const ctx = getAudioContext();
@@ -396,6 +367,7 @@
     let focusModeEnabled = false;
     let darkModeEnabled = false;
     let currentBg = 'forest';
+    let currentVideo = null;
     let minimizedState = {};
     let lastInteractedPad = null;
 
@@ -407,11 +379,32 @@
     let userQuotes = [];
     let currentQuote = motivationalQuotes[0];
 
+    // ========== XP Toast ==========
+    function showXPMessage(text, xpGain) {
+        const container = document.getElementById('xpToastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'xp-toast';
+        toast.innerHTML = `<i class="fas fa-star"></i> +${xpGain} XP · ${text}`;
+        container.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+    }
+
+    function showLevelUpMessage(newLevel) {
+        const container = document.getElementById('xpToastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'xp-toast';
+        toast.style.background = '#c27e5e';
+        toast.innerHTML = `<i class="fas fa-crown"></i> LEVEL UP! You are now level ${newLevel}`;
+        container.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
+        playGentleChime();
+    }
+
+    // ========== LOAD / SAVE HELPERS ==========
     function loadLayout() {
         const saved = localStorage.getItem('cozyNook_layout');
         let loaded = {};
         if (saved) try { loaded = JSON.parse(saved); } catch(e) {}
-        // Remove any stray 'ambient' from saved layout (if present)
         delete loaded.ambient;
         return { ...DEFAULT_LAYOUT, ...loaded };
     }
@@ -421,32 +414,16 @@
     function loadMinimized() {
         const saved = localStorage.getItem('cozyNook_minimized');
         if (saved) try { minimizedState = JSON.parse(saved); } catch(e) { minimizedState = {}; }
-        delete minimizedState.ambient; // clean up
+        delete minimizedState.ambient;
     }
     loadMinimized();
     function saveMinimized() { localStorage.setItem('cozyNook_minimized', JSON.stringify(minimizedState)); }
 
-    function loadSettings() {
-        const warn = localStorage.getItem('cozyNook_tabWarning'); if (warn !== null) tabWarningEnabled = warn === 'true';
-        const focus = localStorage.getItem('cozyNook_focusMode'); if (focus !== null) focusModeEnabled = focus === 'true';
-        const dark = localStorage.getItem('cozyNook_darkMode'); if (dark !== null) darkModeEnabled = dark === 'true';
-        const bg = localStorage.getItem('cozyNook_bg');
-        if (bg && BG_PRESETS[bg]) { currentBg = bg; } else { currentBg = 'forest'; }
-        applyBackground(currentBg);
-        applyDarkMode();
-    }
-    function saveTabWarning(val) { localStorage.setItem('cozyNook_tabWarning', val); }
-    function saveFocusMode(val) { localStorage.setItem('cozyNook_focusMode', val); }
-    function saveDarkMode(val) { localStorage.setItem('cozyNook_darkMode', val); }
-    function saveBackground(bgKey) { localStorage.setItem('cozyNook_bg', bgKey); }
+    // Spotify helpers
+    function loadSpotifyId() { return localStorage.getItem('cozyNook_spotify_id'); }
+    function saveSpotifyId(id) { localStorage.setItem('cozyNook_spotify_id', id); }
 
-    function loadTodo() {
-        const saved = localStorage.getItem('cozyNook_todo');
-        if (saved) try { todoItems = JSON.parse(saved); } catch(e) { todoItems = []; }
-    }
-    loadTodo();
-    function saveTodo() { localStorage.setItem('cozyNook_todo', JSON.stringify(todoItems)); }
-
+    // Notes
     function loadNotes() {
         const saved = localStorage.getItem('cozyNook_notes');
         if (saved) notesText = saved; else notesText = '';
@@ -454,9 +431,15 @@
     loadNotes();
     function saveNotes(text) { localStorage.setItem('cozyNook_notes', text); }
 
-    function loadSpotifyId() { return localStorage.getItem('cozyNook_spotify_id'); }
-    function saveSpotifyId(id) { localStorage.setItem('cozyNook_spotify_id', id); }
+    // Todo
+    function loadTodo() {
+        const saved = localStorage.getItem('cozyNook_todo');
+        if (saved) try { todoItems = JSON.parse(saved); } catch(e) { todoItems = []; }
+    }
+    loadTodo();
+    function saveTodo() { localStorage.setItem('cozyNook_todo', JSON.stringify(todoItems)); }
 
+    // Distraction
     function loadDistractionCount() {
         const saved = localStorage.getItem('cozyNook_distraction');
         if (saved) try { distractionCount = parseInt(saved, 10); } catch(e) { distractionCount = 0; }
@@ -464,6 +447,7 @@
     loadDistractionCount();
     function saveDistractionCount() { localStorage.setItem('cozyNook_distraction', distractionCount); }
 
+    // Quotes
     function loadUserQuotes() {
         const saved = localStorage.getItem('cozyNook_userQuotes');
         if (saved) try { userQuotes = JSON.parse(saved); } catch(e) { userQuotes = []; }
@@ -480,13 +464,101 @@
         motivationalQuotes.push(...userQuotes);
     }
 
-    function applyBackground(key) {
-        if (key === 'linen' || !BG_PRESETS[key]) {
-            document.body.style.backgroundImage = 'none';
-            document.body.style.backgroundColor = '#f4efe9';
+    // Focus stats
+    function loadFocusStats() {
+        const saved = localStorage.getItem('cozyNook_totalFocusSeconds');
+        if (saved) totalFocusSeconds = parseInt(saved) || 0;
+        const goal = localStorage.getItem('cozyNook_dailyGoal');
+        if (goal) dailyGoalSeconds = parseInt(goal) || 7200;
+        const xp = localStorage.getItem('cozyNook_xp');
+        if (xp) xpPoints = parseInt(xp) || 0;
+        updateLevel();
+    }
+    loadFocusStats();
+    function saveFocusStats() {
+        localStorage.setItem('cozyNook_totalFocusSeconds', totalFocusSeconds);
+        localStorage.setItem('cozyNook_dailyGoal', dailyGoalSeconds);
+        localStorage.setItem('cozyNook_xp', xpPoints);
+    }
+    function updateLevel() {
+        const newLevel = Math.floor(Math.sqrt(xpPoints / 100)) + 1;
+        if (newLevel > level) {
+            level = newLevel;
+            showLevelUpMessage(level);
         } else {
-            document.body.style.backgroundImage = BG_PRESETS[key].url;
-            document.body.style.backgroundColor = '';
+            level = newLevel;
+        }
+    }
+    function addXP(amount, source = '') {
+        if (amount <= 0) return;
+        xpPoints += amount;
+        const oldLevel = level;
+        updateLevel();
+        saveFocusStats();
+        updateGamificationUI();
+        showXPMessage(source || 'focus time', amount);
+    }
+
+    // Background / video / theme
+    function loadSettings() {
+        const warn = localStorage.getItem('cozyNook_tabWarning'); if (warn !== null) tabWarningEnabled = warn === 'true';
+        const focus = localStorage.getItem('cozyNook_focusMode'); if (focus !== null) focusModeEnabled = focus === 'true';
+        const dark = localStorage.getItem('cozyNook_darkMode'); if (dark !== null) darkModeEnabled = dark === 'true';
+        const bg = localStorage.getItem('cozyNook_bg');
+        if (bg && BG_PRESETS[bg]) { currentBg = bg; } else { currentBg = 'forest'; }
+        const video = localStorage.getItem('cozyNook_video');
+        if (video && VIDEO_PRESETS[video]) { currentVideo = video; } else { currentVideo = null; }
+        applyBackground(currentBg, currentVideo);
+        applyDarkMode();
+    }
+    function saveTabWarning(val) { localStorage.setItem('cozyNook_tabWarning', val); }
+    function saveFocusMode(val) { localStorage.setItem('cozyNook_focusMode', val); }
+    function saveDarkMode(val) { localStorage.setItem('cozyNook_darkMode', val); }
+    function saveBackground(bgKey, videoKey) { 
+        localStorage.setItem('cozyNook_bg', bgKey); 
+        if (videoKey) localStorage.setItem('cozyNook_video', videoKey);
+        else localStorage.removeItem('cozyNook_video');
+    }
+
+    function applyBackground(bgKey, videoKey) {
+        const videoEl = document.getElementById('bgVideo');
+        const youtubeEl = document.getElementById('bgYoutube');
+        
+        // Hide both initially
+        videoEl.style.display = 'none';
+        youtubeEl.style.display = 'none';
+        videoEl.pause();
+        videoEl.src = '';
+        youtubeEl.src = '';
+
+        if (videoKey && VIDEO_PRESETS[videoKey]) {
+            const preset = VIDEO_PRESETS[videoKey];
+            document.body.style.backgroundImage = 'none';
+            
+            if (preset.type === 'youtube') {
+                // Use YouTube iframe
+                const videoId = preset.videoId;
+                youtubeEl.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
+                youtubeEl.style.display = 'block';
+                currentVideo = videoKey;
+            } else {
+                // Use direct video file
+                videoEl.src = preset.url;
+                videoEl.style.display = 'block';
+                videoEl.load();
+                videoEl.play().catch(e => console.log('autoplay blocked?', e));
+                currentVideo = videoKey;
+            }
+        } else {
+            // No video, use image background
+            if (bgKey === 'linen' || !BG_PRESETS[bgKey]) {
+                document.body.style.backgroundImage = 'none';
+                document.body.style.backgroundColor = '#f4efe9';
+            } else {
+                document.body.style.backgroundImage = BG_PRESETS[bgKey].url;
+                document.body.style.backgroundColor = '';
+            }
+            currentVideo = null;
         }
     }
 
@@ -495,7 +567,7 @@
         else document.body.classList.remove('dark-mode');
     }
 
-    // ----- Timer functions (unchanged) -----
+    // ========== TIMER & FOCUS TIME ==========
     function formatTime(seconds, extended = false) {
         if (extended) {
             const h = Math.floor(seconds / 3600);
@@ -527,34 +599,25 @@
         if (skipBtn) skipBtn.style.display = timerState.mode === 'pomodoro' ? 'inline-flex' : 'none';
     }
 
-    function tickAccurate() {
-        if (!timerState.active) return;
-        const now = Date.now();
-        if (timerState.mode === 'stopwatch') {
-            const elapsed = Math.floor((now - timerState.targetTime) / 1000);
-            timerState.stopwatchSeconds = elapsed;
-            updateTimerDisplay();
-        } else {
-            if (!timerState.targetTime) return;
-            const diff = Math.floor((timerState.targetTime - now) / 1000);
-            if (diff <= 0) {
-                timerState.active = false;
-                timerState.targetTime = null;
-                playGentleChime();
-                if (Notification.permission === 'granted') new Notification('Timer', { body: 'Time is up!', icon: '⏰' });
-                
-                if (timerState.mode === 'pomodoro') {
-                    if (timerState.mode === 'work') { timerState.mode = 'break'; timerState.secondsLeft = timerState.breakMins * 60; }
-                    else { timerState.mode = 'work'; timerState.secondsLeft = timerState.workMins * 60; }
-                } else if (timerState.mode === 'countdown') {
-                    timerState.secondsLeft = 0;
-                }
-                clearInterval(timerInterval); timerInterval = null;
-                updateTimerDisplay();
-            } else {
-                timerState.secondsLeft = diff;
-                updateTimerDisplay();
+    function addFocusTime(seconds) {
+        if (seconds <= 0) return;
+        totalFocusSeconds += seconds;
+        let xpGain = Math.floor(seconds / 6);
+        if (xpGain > 0) {
+            addXP(xpGain, 'focus time');
+        }
+        saveFocusStats();
+        updateGoalUI();
+    }
+
+    function endFocusSession() {
+        if (focusSessionStart !== null) {
+            const now = Date.now();
+            const elapsedSeconds = Math.floor((now - focusSessionStart) / 1000);
+            if (elapsedSeconds >= 1) {
+                addFocusTime(elapsedSeconds);
             }
+            focusSessionStart = null;
         }
     }
 
@@ -567,12 +630,23 @@
             timerState.targetTime = now + timerState.secondsLeft * 1000;
         }
         timerState.active = true;
+
+        if (timerState.mode === 'pomodoro' && timerState.mode === 'work') {
+            focusSessionStart = now;
+        } else if (timerState.mode === 'countdown') {
+            focusSessionStart = now;
+        } else {
+            focusSessionStart = null;
+        }
+
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(tickAccurate, 200);
         updateTimerDisplay();
     }
 
     function pauseTimer() {
+        if (!timerState.active) return;
+        endFocusSession();
         timerState.active = false;
         timerState.targetTime = null;
         if(timerInterval) clearInterval(timerInterval);
@@ -583,7 +657,13 @@
     function toggleTimer() { timerState.active ? pauseTimer() : startTimer(); }
 
     function resetTimer() {
-        pauseTimer();
+        if (timerState.active) {
+            endFocusSession();
+            timerState.active = false;
+            timerState.targetTime = null;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+        }
         if (timerState.mode === 'pomodoro') {
             timerState.mode = 'work';
             timerState.secondsLeft = timerState.workMins * 60;
@@ -597,9 +677,20 @@
 
     function skipTimerPhase() {
         if (timerState.mode !== 'pomodoro') return;
-        pauseTimer();
-        if (timerState.mode === 'work') { timerState.mode = 'break'; timerState.secondsLeft = timerState.breakMins * 60; }
-        else { timerState.mode = 'work'; timerState.secondsLeft = timerState.workMins * 60; }
+        if (timerState.active) {
+            endFocusSession();
+            timerState.active = false;
+            timerState.targetTime = null;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        if (timerState.mode === 'work') { 
+            timerState.mode = 'break'; 
+            timerState.secondsLeft = timerState.breakMins * 60; 
+        } else { 
+            timerState.mode = 'work'; 
+            timerState.secondsLeft = timerState.workMins * 60; 
+        }
         updateTimerDisplay();
     }
 
@@ -626,6 +717,7 @@
     }
 
     function updateTimerSettings() {
+        pauseTimer();
         if (timerState.mode === 'pomodoro') {
             const w = parseInt(document.getElementById('workMins')?.value) || 25;
             const b = parseInt(document.getElementById('breakMins')?.value) || 5;
@@ -639,7 +731,44 @@
         resetTimer();
     }
 
-    // Todo functions
+    function tickAccurate() {
+        if (!timerState.active) return;
+        const now = Date.now();
+        if (timerState.mode === 'stopwatch') {
+            const elapsed = Math.floor((now - timerState.targetTime) / 1000);
+            timerState.stopwatchSeconds = elapsed;
+            updateTimerDisplay();
+        } else {
+            if (!timerState.targetTime) return;
+            const diff = Math.floor((timerState.targetTime - now) / 1000);
+            if (diff <= 0) {
+                endFocusSession();
+                timerState.active = false;
+                timerState.targetTime = null;
+                playGentleChime();
+                if (Notification.permission === 'granted') new Notification('Timer', { body: 'Time is up!', icon: '⏰' });
+
+                if (timerState.mode === 'pomodoro') {
+                    if (timerState.mode === 'work') { 
+                        timerState.mode = 'break'; 
+                        timerState.secondsLeft = timerState.breakMins * 60; 
+                    } else { 
+                        timerState.mode = 'work'; 
+                        timerState.secondsLeft = timerState.workMins * 60; 
+                    }
+                } else if (timerState.mode === 'countdown') {
+                    timerState.secondsLeft = 0;
+                }
+                clearInterval(timerInterval); timerInterval = null;
+                updateTimerDisplay();
+            } else {
+                timerState.secondsLeft = diff;
+                updateTimerDisplay();
+            }
+        }
+    }
+
+    // ========== TODO ==========
     function renderTodoList(container) {
         container.innerHTML = '';
         todoItems.forEach((item, index) => {
@@ -668,7 +797,7 @@
         renderTodoList(document.getElementById('todoList'));
     }
 
-    // Spotify
+    // ========== SPOTIFY ==========
     function extractPlaylistId(input) { const m = input.match(/(?:playlist[/?]|^)([a-zA-Z0-9]{22,})(?:\?|$)/); return m ? m[1] : input; }
     function embedSpotify(id, cont) { if(id) cont.innerHTML = `<iframe src="https://open.spotify.com/embed/playlist/${id}" width="100%" height="80" frameborder="0" allow="encrypted-media"></iframe>`; }
     function loadSpotify() {
@@ -681,8 +810,9 @@
         saveSpotifyId(playlistId);
     }
 
-    // Background
-    function changeBackground(key) { currentBg = key; applyBackground(key); saveBackground(key); }
+    // ========== BACKGROUND ==========
+    function changeBackground(key) { currentBg = key; applyBackground(key, null); saveBackground(key, null); }
+    function changeVideo(key) { currentVideo = key; applyBackground(null, key); saveBackground(null, key); }
     function randomBackground() {
         const keys = Object.keys(BG_PRESETS); 
         const newKey = keys[Math.floor(Math.random() * keys.length)];
@@ -696,6 +826,8 @@
             const dataUrl = e.target.result;
             document.body.style.backgroundImage = `url('${dataUrl}')`;
             document.body.style.backgroundColor = '';
+            document.getElementById('bgVideo').style.display = 'none';
+            document.getElementById('bgYoutube').style.display = 'none';
             try { localStorage.setItem('cozyNook_customBg', dataUrl); } catch(err) {}
         };
         reader.readAsDataURL(file);
@@ -705,7 +837,7 @@
         changeBackground(currentBg);
     }
 
-    // Minimize
+    // ========== MINIMIZE / FOCUS MODE / DARK MODE ==========
     function toggleMinimize(padId) {
         const pad = pads[padId].pad;
         const isMinimized = minimizedState[padId] || false;
@@ -724,7 +856,6 @@
         if (btn) btn.classList.toggle('minimized', minimizedState[padId]);
     }
 
-    // Focus mode
     function applyFocusMode() {
         PAD_IDS.forEach(id => {
             if (id === 'pomodoro' || id === 'todo') return;
@@ -762,11 +893,12 @@
     }
     function clearStorage() { if (confirm('Clear all saved data?')) { localStorage.clear(); location.reload(); } }
 
-    // Distraction
+    // ========== DISTRACTION ==========
     function releaseDistraction() {
         const input = document.getElementById('distractionInput');
         if (input.value.trim() !== '') {
             distractionCount++;
+            addXP(5, 'distraction logged');
             saveDistractionCount();
             updateDistractionUI();
             input.value = '';
@@ -783,6 +915,47 @@
         if (counter) counter.innerText = distractionCount;
     }
 
+    // ========== GOAL & GAMIFICATION UI ==========
+    function updateGoalUI() {
+        const progressFill = document.getElementById('goalProgressFill');
+        const totalSpan = document.getElementById('totalFocusTime');
+        const goalSpan = document.getElementById('goalTargetDisplay');
+        if (progressFill) {
+            let percent = Math.min(100, (totalFocusSeconds / dailyGoalSeconds) * 100);
+            progressFill.style.width = percent + '%';
+        }
+        if (totalSpan) totalSpan.innerText = formatTime(totalFocusSeconds, true);
+        if (goalSpan) goalSpan.innerText = formatTime(dailyGoalSeconds, true);
+    }
+    function updateGamificationUI() {
+        const xpFill = document.getElementById('xpProgressFill');
+        const levelSpan = document.getElementById('levelDisplay');
+        const xpSpan = document.getElementById('xpDisplay');
+        if (xpFill) {
+            const xpForNext = level * level * 100;
+            const xpPrev = (level-1)*(level-1)*100;
+            const percent = ((xpPoints - xpPrev) / (xpForNext - xpPrev)) * 100;
+            xpFill.style.width = Math.min(100, percent) + '%';
+        }
+        if (levelSpan) levelSpan.innerText = level;
+        if (xpSpan) xpSpan.innerText = xpPoints;
+    }
+
+    // Goal slider functions
+    window.updateGoalLabel = function(val) {
+        const lbl = document.getElementById('goalLabel');
+        if (lbl) lbl.innerText = val + ' hours';
+    };
+    window.setDailyGoal = function() {
+        const slider = document.getElementById('goalSlider');
+        if (!slider) return;
+        const hours = parseFloat(slider.value);
+        dailyGoalSeconds = hours * 3600;
+        saveFocusStats();
+        updateGoalUI();
+    };
+
+    // Quotes
     window.addCustomQuote = function() {
         const inp = document.getElementById('customQuoteInput');
         if (!inp.value.trim()) return;
@@ -796,6 +969,7 @@
         }
     };
 
+    // Keyboard
     function handleKeyDown(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         const key = e.key.toLowerCase();
@@ -805,19 +979,6 @@
         else if (key === 'm' && lastInteractedPad) { toggleMinimize(lastInteractedPad); }
     }
     document.addEventListener('keydown', handleKeyDown);
-
-    // Expose functions (removed ambient-related)
-    window.toggleTimer = toggleTimer; window.resetTimer = resetTimer; window.updateTimerSettings = updateTimerSettings;
-    window.skipTimerPhase = skipTimerPhase; window.setTimerMode = setTimerMode;
-    window.addTodo = addTodo; window.clearCompletedTodos = clearCompletedTodos;
-    window.loadSpotify = loadSpotify; 
-    window.changeBackground = changeBackground; window.randomBackground = randomBackground;
-    window.uploadWallpaper = uploadWallpaper; window.clearCustomBg = clearCustomBg;
-    window.resetLayout = resetLayout; window.clearStorage = clearStorage; window.toggleMinimize = toggleMinimize;
-    window.toggleFocusMode = toggleFocusMode; window.requestNotificationPermission = function() { Notification.requestPermission(); };
-    window.loadPresetPlaylist = loadPresetPlaylist;
-    window.toggleDarkMode = toggleDarkMode;
-    window.releaseDistraction = releaseDistraction; window.resetDistraction = resetDistraction;
 
     // Tab warning
     document.addEventListener('visibilitychange', () => {
@@ -833,7 +994,20 @@
         }
     });
 
-    // UI Creation
+    // Expose functions globally
+    window.toggleTimer = toggleTimer; window.resetTimer = resetTimer; window.updateTimerSettings = updateTimerSettings;
+    window.skipTimerPhase = skipTimerPhase; window.setTimerMode = setTimerMode;
+    window.addTodo = addTodo; window.clearCompletedTodos = clearCompletedTodos;
+    window.loadSpotify = loadSpotify; 
+    window.changeBackground = changeBackground; window.changeVideo = changeVideo; window.randomBackground = randomBackground;
+    window.uploadWallpaper = uploadWallpaper; window.clearCustomBg = clearCustomBg;
+    window.resetLayout = resetLayout; window.clearStorage = clearStorage; window.toggleMinimize = toggleMinimize;
+    window.toggleFocusMode = toggleFocusMode; window.requestNotificationPermission = function() { Notification.requestPermission(); };
+    window.loadPresetPlaylist = loadPresetPlaylist;
+    window.toggleDarkMode = toggleDarkMode;
+    window.releaseDistraction = releaseDistraction; window.resetDistraction = resetDistraction;
+
+    // ========== CREATE PADS ==========
     const app = document.getElementById('app');
     const sidebar = document.getElementById('sidebar');
 
@@ -841,6 +1015,12 @@
         const pad = document.createElement('div'); pad.className = 'pad'; pad.id = `pad-${id}`; pad.dataset.id = id;
         const l = layout[id]; pad.style.left = l.x + 'px'; pad.style.top = l.y + 'px'; pad.style.width = l.w + 'px'; pad.style.height = l.h + 'px';
         if (minimizedState[id]) pad.style.display = 'none';
+
+        // Bring to front on mousedown
+        pad.addEventListener('mousedown', function(e) {
+            topZIndex += 10;
+            this.style.zIndex = topZIndex;
+        });
 
         const header = document.createElement('div'); header.className = 'pad-header';
         const titleSpan = document.createElement('span'); 
@@ -851,10 +1031,14 @@
             spotify: '<i class="fab fa-spotify"></i>',
             motivation: '<i class="fas fa-quote-right"></i>',
             settings: '<i class="fas fa-sliders-h"></i>',
-            distraction: '<i class="fas fa-brain"></i>'
+            distraction: '<i class="fas fa-brain"></i>',
+            goal: '<i class="fas fa-bullseye"></i>',
+            gamification: '<i class="fas fa-gamepad"></i>'
         };
         let displayName = id.charAt(0).toUpperCase() + id.slice(1);
         if (id === 'todo') displayName = 'To-Do';
+        if (id === 'goal') displayName = 'Study Goal';
+        if (id === 'gamification') displayName = 'Stats & XP';
         titleSpan.innerHTML = (icons[id] || '<i class="fas fa-circle"></i>') + ' ' + displayName;
         header.appendChild(titleSpan);
         const minBtn = document.createElement('span'); 
@@ -870,6 +1054,7 @@
         pads[id] = { pad, content, header, minBtn, handle };
 
         const cont = content;
+        // ---- PAD CONTENT ----
         if (id === 'pomodoro') {
             cont.innerHTML = `
                 <div class="mode-selector">
@@ -917,7 +1102,11 @@
                     <button onclick="loadPresetPlaylist('1LCRf5yt7Jp58WZRAffNbi')" class="secondary no-drag"><i class="fas fa-music"></i> Classical</button>
                     <button onclick="loadPresetPlaylist('37i9dQZF1DX3Ogo9pFvBkY')" class="secondary no-drag"><i class="fas fa-headphones"></i> Focus</button>
                 </div>`;
-            const lastId = loadSpotifyId(); if (lastId) { document.getElementById('spotifyInput').value = lastId; embedSpotify(lastId, document.getElementById('spotifyEmbed')); }
+            const lastId = loadSpotifyId(); 
+            if (lastId) { 
+                document.getElementById('spotifyInput').value = lastId; 
+                embedSpotify(lastId, document.getElementById('spotifyEmbed')); 
+            }
         } else if (id === 'motivation') {
             const quoteDiv = document.createElement('div'); quoteDiv.className = 'quote-box';
             currentQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
@@ -943,11 +1132,21 @@
             Object.keys(BG_PRESETS).forEach(key => {
                 const icon = BG_PRESETS[key].icon;
                 bgRadios += `<div class="bg-option">
-                    <input type="radio" name="bg" id="bg-${key}" value="${key}" ${currentBg===key?'checked':''} onchange="changeBackground('${key}')">
+                    <input type="radio" name="bg" id="bg-${key}" value="${key}" ${currentBg===key && !currentVideo?'checked':''} onchange="changeBackground('${key}')">
                     <label for="bg-${key}"><i class="fas ${icon}"></i>${key}</label>
                 </div>`;
             });
-            bgRadios += '</div><button class="secondary mt-2" onclick="randomBackground()"><i class="fas fa-shuffle"></i> Random</button>';
+            bgRadios += '</div><button class="secondary mt-2" onclick="randomBackground()"><i class="fas fa-shuffle"></i> Random image</button>';
+            
+            let videoRadios = '<div class="bg-selector mt-2">';
+            Object.keys(VIDEO_PRESETS).forEach(key => {
+                const vid = VIDEO_PRESETS[key];
+                videoRadios += `<div class="bg-option">
+                    <input type="radio" name="video" id="video-${key}" value="${key}" ${currentVideo===key?'checked':''} onchange="changeVideo('${key}')">
+                    <label for="video-${key}"><i class="fas ${vid.icon}"></i>${vid.label}</label>
+                </div>`;
+            });
+            videoRadios += '</div>';
             
             cont.innerHTML = `
                 <label class="checkbox-wrapper">
@@ -967,7 +1166,8 @@
                 </label>
                 <div class="notification-permission" onclick="requestNotificationPermission()"><i class="fas fa-bell"></i> Enable notifications</div>
                 <hr style="margin:12px 0; border-color:var(--clay); opacity:0.2;">
-                <label>Background:</label>${bgRadios}
+                <label>Image backgrounds:</label>${bgRadios}
+                <label class="mt-2"></label>${videoRadios}
                 <div class="mt-2">
                     <label>Custom wallpaper (upload):</label>
                     <input type="file" id="wallpaperUpload" accept="image/*" class="no-drag" onchange="uploadWallpaper(this.files[0])">
@@ -991,13 +1191,41 @@
             cont.innerHTML = `<div class="distraction-icon" onclick="releaseDistraction()"><i class="fas fa-brain"></i> 🧠</div>
                 <div class="distraction-count" id="distractionCounter">${distractionCount}</div>
                 <input id="distractionInput" placeholder="What's distracting you?" class="no-drag">
-                <div class="flex-row mt-2"><button onclick="releaseDistraction()"><i class="fas fa-leaf"></i> Release</button>
+                <div class="flex-row mt-2"><button onclick="releaseDistraction()"><i class="fas fa-leaf"></i> Release (+5 XP)</button>
                 <button class="secondary" onclick="resetDistraction()"><i class="fas fa-undo"></i> Reset</button></div>`;
+        } else if (id === 'goal') {
+            cont.innerHTML = `
+                <label>Daily study goal (hours)</label>
+                <input type="range" id="goalSlider" min="1" max="12" value="${dailyGoalSeconds/3600}" step="0.5" oninput="updateGoalLabel(this.value)" class="no-drag">
+                <div class="flex-row"><span id="goalLabel">${dailyGoalSeconds/3600} hours</span> <button class="secondary no-drag" onclick="setDailyGoal()">Set</button></div>
+                <div class="progress-bar"><div class="progress-fill" id="goalProgressFill" style="width:0%"></div></div>
+                <p>Total focus: <span id="totalFocusTime">${formatTime(totalFocusSeconds, true)}</span> / <span id="goalTargetDisplay">${formatTime(dailyGoalSeconds, true)}</span></p>
+                <p class="text-small">Focus time adds XP (1 min = 10 XP)</p>
+            `;
+            setTimeout(() => {
+                updateGoalUI();
+            }, 0);
+        } else if (id === 'gamification') {
+            cont.innerHTML = `
+                <div class="level-badge" id="levelDisplay">${level}</div>
+                <p>XP: <span id="xpDisplay">${xpPoints}</span></p>
+                <div class="progress-bar xp-bar"><div class="progress-fill" id="xpProgressFill" style="width:0%"></div></div>
+                <p>💡 Achievements:</p>
+                <ul style="margin-left:20px;">
+                    <li>First focus session ( +50 XP )</li>
+                    <li>Log 10 distractions ( +100 XP )</li>
+                    <li>Complete 5 pomodoros ( +200 XP )</li>
+                </ul>
+                <p class="text-small">Keep going! 🌟</p>
+            `;
+            setTimeout(() => {
+                updateGamificationUI();
+            }, 0);
         }
 
         const sbBtn = document.createElement('button'); sbBtn.id = `sidebar-${id}`; sbBtn.className = `sidebar-btn ${minimizedState[id] ? 'minimized' : ''}`;
         sbBtn.innerHTML = icons[id] || '<i class="fas fa-circle"></i>';
-        sbBtn.title = id === 'todo' ? 'To-Do' : id;
+        sbBtn.title = displayName;
         sbBtn.onclick = () => toggleMinimize(id);
         sidebar.appendChild(sbBtn);
 
@@ -1038,9 +1266,12 @@
         });
     });
 
+    // Final initialisation
     loadSettings();
     applyFocusMode();
     applyDarkMode();
+    updateGoalUI();
+    updateGamificationUI();
 
     document.getElementById('exitFocusBtn').addEventListener('click', () => {
         if (focusModeEnabled) toggleFocusMode();
