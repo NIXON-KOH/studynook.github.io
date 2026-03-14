@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>focus nook</title>
+    <title>focus nook · fixed & intuitive</title>
     <!-- leaf favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.17/dist/interact.min.js"></script>
     <style>
-        /* ---------- base styles (unchanged, only additions for toasts) ---------- */
+        /* ---------- base styles (unchanged) ---------- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
@@ -35,9 +35,7 @@
             display: none;
             border: 0;
         }
-        #bgYoutube {
-            z-index: -2;
-        }
+        #bgYoutube { z-index: -2; }
         body.dark-mode {
             --clay: #c27e5e;
             --sage: #5d8461;
@@ -175,7 +173,6 @@
         .checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after { content: "✓"; font-weight: bold; }
         .checkbox-wrapper:hover .checkmark { background: rgba(193,123,94,0.3); }
 
-        /* progress bar */
         .progress-bar {
             width: 100%; height: 24px; background: rgba(193,123,94,0.2); border-radius: 30px; margin: 10px 0; overflow: hidden;
             border: 1px solid var(--clay);
@@ -252,7 +249,6 @@
         input[type=range]::-moz-range-thumb { width: 22px; height: 22px; background: white; border: 2px solid var(--clay); border-radius: 50%; cursor: pointer; }
         input[type=range]::-webkit-slider-runnable-track { height: 8px; background: linear-gradient(90deg, var(--clay) 0%, var(--clay) var(--fill, 0%), rgba(193,123,94,0.2) var(--fill, 0%)); border-radius: 20px; }
 
-        /* XP toast */
         .xp-toast {
             position: fixed; bottom: 20px; right: 20px;
             background: var(--sage); color: white; padding: 12px 24px;
@@ -265,10 +261,12 @@
         .xp-toast i { font-size: 1.4rem; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
+
+        /* new current session style */
+        .current-session { font-family: monospace; background: rgba(193,123,94,0.1); padding: 8px; border-radius: 40px; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <!-- Video backgrounds: both direct video and YouTube iframe -->
     <video id="bgVideo" muted loop playsinline></video>
     <iframe id="bgYoutube" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
 
@@ -293,8 +291,8 @@
         motivation: { x: 400, y: 410, w: 300, h: 240 },
         settings:   { x: 40, y: 660, w: 360, h: 400 },
         distraction: { x: 430, y: 670, w: 300, h: 200 },
-        goal:       { x: 750, y: 300, w: 300, h: 260 },
-        gamification: { x: 750, y: 580, w: 320, h: 280 }
+        goal:       { x: 750, y: 300, w: 300, h: 300 },
+        gamification: { x: 750, y: 580, w: 320, h: 300 }
     };
 
     const BG_PRESETS = {
@@ -305,17 +303,18 @@
         library: { url: 'url("https://images.pexels.com/photos/3494806/pexels-photo-3494806.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")', icon: 'fa-book' }
     };
 
-    // Video presets: now support both direct video files (type: 'direct') and YouTube (type: 'youtube')
     const VIDEO_PRESETS = {
-        // study3: { url: 'https://www.youtube.com/watch?v=gvi0H2E-XcI', label: 'Cafe', icon: 'fa-mug-hot', type: 'youtube', videoId: 'gvi0H2E-XcI' },
-        // study4: { url: 'https://www.youtube.com/watch?v=SllpB3W5f6s', label: 'Academia', icon: 'fa-book', type: 'youtube', videoId: 'SllpB3W5f6s' },
-        // study5: { url: 'https://www.youtube.com/watch?v=gq6DfoS-l9A', label: 'Idols Studying', icon: 'fa-video', type: 'youtube', videoId: 'gq6DfoS-l9A' }
+        study3: { url: 'https://www.youtube.com/watch?v=gvi0H2E-XcI', label: 'Cafe', icon: 'fa-mug-hot', type: 'youtube', videoId: 'gvi0H2E-XcI' },
+        study4: { url: 'https://www.youtube.com/watch?v=SllpB3W5f6s', label: 'Academia', icon: 'fa-book', type: 'youtube', videoId: 'SllpB3W5f6s' },
+        study5: { url: 'https://www.youtube.com/watch?v=gq6DfoS-l9A', label: 'Idols Studying', icon: 'fa-video', type: 'youtube', videoId: 'gq6DfoS-l9A' }
     };
 
     let pads = {};
     let timerInterval = null;
+    // ---------- FIXED TIMER STATE (pomodoroPhase added) ----------
     let timerState = {
-        mode: 'pomodoro',
+        mode: 'pomodoro',           // 'pomodoro', 'countdown', 'stopwatch'
+        pomodoroPhase: 'work',      // 'work' or 'break' (only used when mode='pomodoro')
         workMins: 25, breakMins: 5,
         countdownMins: 5,
         secondsLeft: 25 * 60,
@@ -324,27 +323,20 @@
         targetTime: null
     };
 
-    // ----- focus time & gamification -----
     let totalFocusSeconds = 0;
     let dailyGoalSeconds = 7200; // 2 hours
     let xpPoints = 0;
     let level = 1;
-
-    let focusSessionStart = null;
+    let focusSessionStart = null; // timestamp when current focus session started (work or countdown)
 
     let distractionCount = 0;
     let todoItems = [];
     let notesText = '';
 
-    // Z-index management
     let topZIndex = 100;
-
-    // ----- audio -----
     let audioContext = null;
     function getAudioContext() {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
         return audioContext;
     }
     function playGentleChime() {
@@ -379,7 +371,7 @@
     let userQuotes = [];
     let currentQuote = motivationalQuotes[0];
 
-    // ========== XP Toast ==========
+    // ----- toast helpers -----
     function showXPMessage(text, xpGain) {
         const container = document.getElementById('xpToastContainer');
         const toast = document.createElement('div');
@@ -388,7 +380,6 @@
         container.appendChild(toast);
         setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
     }
-
     function showLevelUpMessage(newLevel) {
         const container = document.getElementById('xpToastContainer');
         const toast = document.createElement('div');
@@ -400,7 +391,7 @@
         playGentleChime();
     }
 
-    // ========== LOAD / SAVE HELPERS ==========
+    // ========== LOAD / SAVE ==========
     function loadLayout() {
         const saved = localStorage.getItem('cozyNook_layout');
         let loaded = {};
@@ -419,35 +410,26 @@
     loadMinimized();
     function saveMinimized() { localStorage.setItem('cozyNook_minimized', JSON.stringify(minimizedState)); }
 
-    // Spotify helpers
     function loadSpotifyId() { return localStorage.getItem('cozyNook_spotify_id'); }
     function saveSpotifyId(id) { localStorage.setItem('cozyNook_spotify_id', id); }
-
-    // Notes
     function loadNotes() {
         const saved = localStorage.getItem('cozyNook_notes');
         if (saved) notesText = saved; else notesText = '';
     }
     loadNotes();
     function saveNotes(text) { localStorage.setItem('cozyNook_notes', text); }
-
-    // Todo
     function loadTodo() {
         const saved = localStorage.getItem('cozyNook_todo');
         if (saved) try { todoItems = JSON.parse(saved); } catch(e) { todoItems = []; }
     }
     loadTodo();
     function saveTodo() { localStorage.setItem('cozyNook_todo', JSON.stringify(todoItems)); }
-
-    // Distraction
     function loadDistractionCount() {
         const saved = localStorage.getItem('cozyNook_distraction');
         if (saved) try { distractionCount = parseInt(saved, 10); } catch(e) { distractionCount = 0; }
     }
     loadDistractionCount();
     function saveDistractionCount() { localStorage.setItem('cozyNook_distraction', distractionCount); }
-
-    // Quotes
     function loadUserQuotes() {
         const saved = localStorage.getItem('cozyNook_userQuotes');
         if (saved) try { userQuotes = JSON.parse(saved); } catch(e) { userQuotes = []; }
@@ -463,8 +445,6 @@
         ];
         motivationalQuotes.push(...userQuotes);
     }
-
-    // Focus stats
     function loadFocusStats() {
         const saved = localStorage.getItem('cozyNook_totalFocusSeconds');
         if (saved) totalFocusSeconds = parseInt(saved) || 0;
@@ -499,75 +479,42 @@
         showXPMessage(source || 'focus time', amount);
     }
 
-    // Background / video / theme
-    function loadSettings() {
-        const warn = localStorage.getItem('cozyNook_tabWarning'); if (warn !== null) tabWarningEnabled = warn === 'true';
-        const focus = localStorage.getItem('cozyNook_focusMode'); if (focus !== null) focusModeEnabled = focus === 'true';
-        const dark = localStorage.getItem('cozyNook_darkMode'); if (dark !== null) darkModeEnabled = dark === 'true';
-        const bg = localStorage.getItem('cozyNook_bg');
-        if (bg && BG_PRESETS[bg]) { currentBg = bg; } else { currentBg = 'forest'; }
-        const video = localStorage.getItem('cozyNook_video');
-        if (video && VIDEO_PRESETS[video]) { currentVideo = video; } else { currentVideo = null; }
-        applyBackground(currentBg, currentVideo);
-        applyDarkMode();
-    }
-    function saveTabWarning(val) { localStorage.setItem('cozyNook_tabWarning', val); }
-    function saveFocusMode(val) { localStorage.setItem('cozyNook_focusMode', val); }
-    function saveDarkMode(val) { localStorage.setItem('cozyNook_darkMode', val); }
-    function saveBackground(bgKey, videoKey) { 
-        localStorage.setItem('cozyNook_bg', bgKey); 
-        if (videoKey) localStorage.setItem('cozyNook_video', videoKey);
-        else localStorage.removeItem('cozyNook_video');
-    }
-
-    function applyBackground(bgKey, videoKey) {
-        const videoEl = document.getElementById('bgVideo');
-        const youtubeEl = document.getElementById('bgYoutube');
-        
-        // Hide both initially
-        videoEl.style.display = 'none';
-        youtubeEl.style.display = 'none';
-        videoEl.pause();
-        videoEl.src = '';
-        youtubeEl.src = '';
-
-        if (videoKey && VIDEO_PRESETS[videoKey]) {
-            const preset = VIDEO_PRESETS[videoKey];
-            document.body.style.backgroundImage = 'none';
-            
-            if (preset.type === 'youtube') {
-                // Use YouTube iframe
-                const videoId = preset.videoId;
-                youtubeEl.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
-                youtubeEl.style.display = 'block';
-                currentVideo = videoKey;
-            } else {
-                // Use direct video file
-                videoEl.src = preset.url;
-                videoEl.style.display = 'block';
-                videoEl.load();
-                videoEl.play().catch(e => console.log('autoplay blocked?', e));
-                currentVideo = videoKey;
-            }
-        } else {
-            // No video, use image background
-            if (bgKey === 'linen' || !BG_PRESETS[bgKey]) {
-                document.body.style.backgroundImage = 'none';
-                document.body.style.backgroundColor = '#f4efe9';
-            } else {
-                document.body.style.backgroundImage = BG_PRESETS[bgKey].url;
-                document.body.style.backgroundColor = '';
-            }
-            currentVideo = null;
+    // ---------- RESET XP (new function) ----------
+    window.resetXP = function() {
+        if (confirm('Reset all XP to 0? Your level will go back to 1.')) {
+            xpPoints = 0;
+            level = 1;
+            saveFocusStats();
+            updateGamificationUI();
+            showXPMessage('XP reset', 0);
         }
+    };
+
+    // ---------- GOAL: live slider update (no set button) ----------
+    window.updateGoalSlider = function(val) {
+        dailyGoalSeconds = val * 3600;
+        const lbl = document.getElementById('goalLabel');
+        if (lbl) lbl.innerText = val + ' hours';
+        saveFocusStats();
+        updateGoalUI();
+    };
+
+    // ---------- live current session display ----------
+    function updateCurrentSessionDisplay() {
+        const el = document.getElementById('currentSessionDisplay');
+        if (!el) return;
+        let currentSec = 0;
+        if (timerState.active && focusSessionStart !== null) {
+            // only count if we are in a focus-allowed phase (work or countdown)
+            const isWorkPhase = (timerState.mode === 'pomodoro' && timerState.pomodoroPhase === 'work') || timerState.mode === 'countdown';
+            if (isWorkPhase) {
+                currentSec = Math.floor((Date.now() - focusSessionStart) / 1000);
+            }
+        }
+        el.innerText = formatTime(currentSec, true);
     }
 
-    function applyDarkMode() {
-        if (darkModeEnabled) document.body.classList.add('dark-mode');
-        else document.body.classList.remove('dark-mode');
-    }
-
-    // ========== TIMER & FOCUS TIME ==========
+    // ========== TIMER (fixed pomodoro logic) ==========
     function formatTime(seconds, extended = false) {
         if (extended) {
             const h = Math.floor(seconds / 3600);
@@ -588,9 +535,9 @@
         }
         const modeSpan = document.getElementById('timerMode');
         if(modeSpan) {
-            if (timerState.mode === 'pomodoro') modeSpan.innerText = timerState.mode === 'work' ? 'Work' : 'Break';
-            else if (timerState.mode === 'countdown') modeSpan.innerText = 'Countdown';
-            else modeSpan.innerText = 'Stopwatch';
+            if (timerState.mode === 'pomodoro') modeSpan.innerText = timerState.pomodoroPhase === 'work' ? '🍅 Work' : '☕ Break';
+            else if (timerState.mode === 'countdown') modeSpan.innerText = '⏳ Countdown';
+            else modeSpan.innerText = '⏱️ Stopwatch';
         }
         const btn = document.getElementById('startTimer');
         if(btn) btn.innerHTML = timerState.active ? '<i class="fas fa-pause"></i> Pause' : '<i class="fas fa-play"></i> Start';
@@ -603,9 +550,7 @@
         if (seconds <= 0) return;
         totalFocusSeconds += seconds;
         let xpGain = Math.floor(seconds / 6);
-        if (xpGain > 0) {
-            addXP(xpGain, 'focus time');
-        }
+        if (xpGain > 0) addXP(xpGain, 'focus time');
         saveFocusStats();
         updateGoalUI();
     }
@@ -614,9 +559,7 @@
         if (focusSessionStart !== null) {
             const now = Date.now();
             const elapsedSeconds = Math.floor((now - focusSessionStart) / 1000);
-            if (elapsedSeconds >= 1) {
-                addFocusTime(elapsedSeconds);
-            }
+            if (elapsedSeconds >= 1) addFocusTime(elapsedSeconds);
             focusSessionStart = null;
         }
     }
@@ -626,19 +569,17 @@
         const now = Date.now();
         if (timerState.mode === 'stopwatch') {
             timerState.targetTime = now - timerState.stopwatchSeconds * 1000;
+            focusSessionStart = null; // stopwatch doesn't count as focus
         } else {
             timerState.targetTime = now + timerState.secondsLeft * 1000;
+            // set focus start only for work phase or countdown
+            if ( (timerState.mode === 'pomodoro' && timerState.pomodoroPhase === 'work') || timerState.mode === 'countdown' ) {
+                focusSessionStart = now;
+            } else {
+                focusSessionStart = null;
+            }
         }
         timerState.active = true;
-
-        if (timerState.mode === 'pomodoro' && timerState.mode === 'work') {
-            focusSessionStart = now;
-        } else if (timerState.mode === 'countdown') {
-            focusSessionStart = now;
-        } else {
-            focusSessionStart = null;
-        }
-
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(tickAccurate, 200);
         updateTimerDisplay();
@@ -652,6 +593,7 @@
         if(timerInterval) clearInterval(timerInterval);
         timerInterval = null;
         updateTimerDisplay();
+        updateCurrentSessionDisplay();
     }
 
     function toggleTimer() { timerState.active ? pauseTimer() : startTimer(); }
@@ -665,7 +607,7 @@
             timerInterval = null;
         }
         if (timerState.mode === 'pomodoro') {
-            timerState.mode = 'work';
+            timerState.pomodoroPhase = 'work';
             timerState.secondsLeft = timerState.workMins * 60;
         } else if (timerState.mode === 'countdown') {
             timerState.secondsLeft = timerState.countdownMins * 60;
@@ -673,6 +615,7 @@
             timerState.stopwatchSeconds = 0;
         }
         updateTimerDisplay();
+        updateCurrentSessionDisplay();
     }
 
     function skipTimerPhase() {
@@ -684,11 +627,11 @@
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = null;
         }
-        if (timerState.mode === 'work') { 
-            timerState.mode = 'break'; 
+        if (timerState.pomodoroPhase === 'work') { 
+            timerState.pomodoroPhase = 'break'; 
             timerState.secondsLeft = timerState.breakMins * 60; 
         } else { 
-            timerState.mode = 'work'; 
+            timerState.pomodoroPhase = 'work'; 
             timerState.secondsLeft = timerState.workMins * 60; 
         }
         updateTimerDisplay();
@@ -698,6 +641,7 @@
         pauseTimer();
         timerState.mode = newMode;
         if (newMode === 'pomodoro') {
+            timerState.pomodoroPhase = 'work';
             timerState.secondsLeft = timerState.workMins * 60;
         } else if (newMode === 'countdown') {
             timerState.secondsLeft = timerState.countdownMins * 60;
@@ -742,18 +686,18 @@
             if (!timerState.targetTime) return;
             const diff = Math.floor((timerState.targetTime - now) / 1000);
             if (diff <= 0) {
-                endFocusSession();
+                endFocusSession();  // session ended naturally
                 timerState.active = false;
                 timerState.targetTime = null;
                 playGentleChime();
                 if (Notification.permission === 'granted') new Notification('Timer', { body: 'Time is up!', icon: '⏰' });
 
                 if (timerState.mode === 'pomodoro') {
-                    if (timerState.mode === 'work') { 
-                        timerState.mode = 'break'; 
+                    if (timerState.pomodoroPhase === 'work') { 
+                        timerState.pomodoroPhase = 'break'; 
                         timerState.secondsLeft = timerState.breakMins * 60; 
                     } else { 
-                        timerState.mode = 'work'; 
+                        timerState.pomodoroPhase = 'work'; 
                         timerState.secondsLeft = timerState.workMins * 60; 
                     }
                 } else if (timerState.mode === 'countdown') {
@@ -766,9 +710,10 @@
                 updateTimerDisplay();
             }
         }
+        updateCurrentSessionDisplay(); // update live session timer
     }
 
-    // ========== TODO ==========
+    // ========== TODO (unchanged) ==========
     function renderTodoList(container) {
         container.innerHTML = '';
         todoItems.forEach((item, index) => {
@@ -810,7 +755,7 @@
         saveSpotifyId(playlistId);
     }
 
-    // ========== BACKGROUND ==========
+    // ========== BACKGROUND (unchanged) ==========
     function changeBackground(key) { currentBg = key; applyBackground(key, null); saveBackground(key, null); }
     function changeVideo(key) { currentVideo = key; applyBackground(null, key); saveBackground(null, key); }
     function randomBackground() {
@@ -836,18 +781,44 @@
         localStorage.removeItem('cozyNook_customBg');
         changeBackground(currentBg);
     }
+    function applyBackground(bgKey, videoKey) {
+        const videoEl = document.getElementById('bgVideo');
+        const youtubeEl = document.getElementById('bgYoutube');
+        videoEl.style.display = 'none'; youtubeEl.style.display = 'none';
+        videoEl.pause(); videoEl.src = ''; youtubeEl.src = '';
+        if (videoKey && VIDEO_PRESETS[videoKey]) {
+            const preset = VIDEO_PRESETS[videoKey];
+            document.body.style.backgroundImage = 'none';
+            if (preset.type === 'youtube') {
+                const videoId = preset.videoId;
+                youtubeEl.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`;
+                youtubeEl.style.display = 'block';
+                currentVideo = videoKey;
+            } else {
+                videoEl.src = preset.url;
+                videoEl.style.display = 'block';
+                videoEl.load();
+                videoEl.play().catch(e => console.log('autoplay blocked?', e));
+                currentVideo = videoKey;
+            }
+        } else {
+            if (bgKey === 'linen' || !BG_PRESETS[bgKey]) {
+                document.body.style.backgroundImage = 'none';
+                document.body.style.backgroundColor = '#f4efe9';
+            } else {
+                document.body.style.backgroundImage = BG_PRESETS[bgKey].url;
+                document.body.style.backgroundColor = '';
+            }
+            currentVideo = null;
+        }
+    }
 
-    // ========== MINIMIZE / FOCUS MODE / DARK MODE ==========
+    // ========== MINIMIZE / FOCUS / DARK MODE ==========
     function toggleMinimize(padId) {
         const pad = pads[padId].pad;
         const isMinimized = minimizedState[padId] || false;
-        if (isMinimized) {
-            pad.style.display = 'flex';
-            minimizedState[padId] = false;
-        } else {
-            pad.style.display = 'none';
-            minimizedState[padId] = true;
-        }
+        if (isMinimized) { pad.style.display = 'flex'; minimizedState[padId] = false; }
+        else { pad.style.display = 'none'; minimizedState[padId] = true; }
         saveMinimized();
         updateSidebarButton(padId);
     }
@@ -855,7 +826,6 @@
         const btn = document.getElementById(`sidebar-${padId}`);
         if (btn) btn.classList.toggle('minimized', minimizedState[padId]);
     }
-
     function applyFocusMode() {
         PAD_IDS.forEach(id => {
             if (id === 'pomodoro' || id === 'todo') return;
@@ -870,7 +840,6 @@
         const chk = document.getElementById('focusModeCheck'); 
         if(chk) chk.checked = focusModeEnabled; 
     }
-
     function toggleDarkMode() {
         darkModeEnabled = !darkModeEnabled;
         applyDarkMode();
@@ -878,7 +847,10 @@
         const chk = document.getElementById('darkModeCheck');
         if(chk) chk.checked = darkModeEnabled;
     }
-
+    function applyDarkMode() {
+        if (darkModeEnabled) document.body.classList.add('dark-mode');
+        else document.body.classList.remove('dark-mode');
+    }
     function resetLayout() {
         if (!confirm('Reset all pad positions and sizes?')) return;
         layout = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
@@ -941,21 +913,7 @@
         if (xpSpan) xpSpan.innerText = xpPoints;
     }
 
-    // Goal slider functions
-    window.updateGoalLabel = function(val) {
-        const lbl = document.getElementById('goalLabel');
-        if (lbl) lbl.innerText = val + ' hours';
-    };
-    window.setDailyGoal = function() {
-        const slider = document.getElementById('goalSlider');
-        if (!slider) return;
-        const hours = parseFloat(slider.value);
-        dailyGoalSeconds = hours * 3600;
-        saveFocusStats();
-        updateGoalUI();
-    };
-
-    // Quotes
+    // ========== QUOTES ==========
     window.addCustomQuote = function() {
         const inp = document.getElementById('customQuoteInput');
         if (!inp.value.trim()) return;
@@ -969,7 +927,7 @@
         }
     };
 
-    // Keyboard
+    // ========== KEYBOARD ==========
     function handleKeyDown(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         const key = e.key.toLowerCase();
@@ -980,7 +938,7 @@
     }
     document.addEventListener('keydown', handleKeyDown);
 
-    // Tab warning
+    // ========== TAB WARNING ==========
     document.addEventListener('visibilitychange', () => {
         if (tabWarningEnabled && document.visibilityState === 'hidden') {
             const toast = document.createElement('div'); toast.className = 'tab-toast';
@@ -994,19 +952,6 @@
         }
     });
 
-    // Expose functions globally
-    window.toggleTimer = toggleTimer; window.resetTimer = resetTimer; window.updateTimerSettings = updateTimerSettings;
-    window.skipTimerPhase = skipTimerPhase; window.setTimerMode = setTimerMode;
-    window.addTodo = addTodo; window.clearCompletedTodos = clearCompletedTodos;
-    window.loadSpotify = loadSpotify; 
-    window.changeBackground = changeBackground; window.changeVideo = changeVideo; window.randomBackground = randomBackground;
-    window.uploadWallpaper = uploadWallpaper; window.clearCustomBg = clearCustomBg;
-    window.resetLayout = resetLayout; window.clearStorage = clearStorage; window.toggleMinimize = toggleMinimize;
-    window.toggleFocusMode = toggleFocusMode; window.requestNotificationPermission = function() { Notification.requestPermission(); };
-    window.loadPresetPlaylist = loadPresetPlaylist;
-    window.toggleDarkMode = toggleDarkMode;
-    window.releaseDistraction = releaseDistraction; window.resetDistraction = resetDistraction;
-
     // ========== CREATE PADS ==========
     const app = document.getElementById('app');
     const sidebar = document.getElementById('sidebar');
@@ -1016,7 +961,6 @@
         const l = layout[id]; pad.style.left = l.x + 'px'; pad.style.top = l.y + 'px'; pad.style.width = l.w + 'px'; pad.style.height = l.h + 'px';
         if (minimizedState[id]) pad.style.display = 'none';
 
-        // Bring to front on mousedown
         pad.addEventListener('mousedown', function(e) {
             topZIndex += 10;
             this.style.zIndex = topZIndex;
@@ -1054,7 +998,7 @@
         pads[id] = { pad, content, header, minBtn, handle };
 
         const cont = content;
-        // ---- PAD CONTENT ----
+        // ------- PAD CONTENT (with modifications) -------
         if (id === 'pomodoro') {
             cont.innerHTML = `
                 <div class="mode-selector">
@@ -1063,7 +1007,7 @@
                     <div class="mode-btn ${timerState.mode==='stopwatch'?'active':''}" data-mode="stopwatch" onclick="setTimerMode('stopwatch')"><i class="fas fa-stopwatch"></i> Stopwatch</div>
                 </div>
                 <div class="timer-display" id="timerDisplay">${formatTime(timerState.secondsLeft)}</div>
-                <div id="timerMode" style="text-align:center;margin-bottom:10px;">${timerState.mode==='pomodoro'?'🌱 Work':timerState.mode==='countdown'?'⏳ Countdown':'⏱️ Stopwatch'}</div>
+                <div id="timerMode" style="text-align:center;margin-bottom:10px;">${timerState.mode==='pomodoro'? (timerState.pomodoroPhase==='work'?'🍅 Work':'☕ Break') : (timerState.mode==='countdown'?'⏳ Countdown':'⏱️ Stopwatch')}</div>
                 <div class="flex-row">
                     <button id="startTimer" onclick="toggleTimer()">${timerState.active?'<i class="fas fa-pause"></i> Pause':'<i class="fas fa-play"></i> Start'}</button>
                     <button class="secondary" onclick="resetTimer()"><i class="fas fa-undo"></i> Reset</button>
@@ -1194,22 +1138,28 @@
                 <div class="flex-row mt-2"><button onclick="releaseDistraction()"><i class="fas fa-leaf"></i> Release (+5 XP)</button>
                 <button class="secondary" onclick="resetDistraction()"><i class="fas fa-undo"></i> Reset</button></div>`;
         } else if (id === 'goal') {
+            // MODIFIED: slider updates live, added current session display
             cont.innerHTML = `
                 <label>Daily study goal (hours)</label>
-                <input type="range" id="goalSlider" min="1" max="12" value="${dailyGoalSeconds/3600}" step="0.5" oninput="updateGoalLabel(this.value)" class="no-drag">
-                <div class="flex-row"><span id="goalLabel">${dailyGoalSeconds/3600} hours</span> <button class="secondary no-drag" onclick="setDailyGoal()">Set</button></div>
+                <input type="range" id="goalSlider" min="1" max="12" value="${dailyGoalSeconds/3600}" step="0.5" oninput="updateGoalSlider(this.value)" class="no-drag">
+                <div class="flex-row"><span id="goalLabel">${dailyGoalSeconds/3600} hours</span></div>
                 <div class="progress-bar"><div class="progress-fill" id="goalProgressFill" style="width:0%"></div></div>
                 <p>Total focus: <span id="totalFocusTime">${formatTime(totalFocusSeconds, true)}</span> / <span id="goalTargetDisplay">${formatTime(dailyGoalSeconds, true)}</span></p>
-                <p class="text-small">Focus time adds XP (1 min = 10 XP)</p>
+                <div class="current-session">
+                    <i class="fas fa-hourglass-half"></i> Current session: <span id="currentSessionDisplay">00:00:00</span>
+                </div>
+                <p class="text-small">Focus time adds XP (1 min = 10 XP) · progress updates after each session.</p>
             `;
             setTimeout(() => {
                 updateGoalUI();
             }, 0);
         } else if (id === 'gamification') {
+            // ADDED reset XP button
             cont.innerHTML = `
                 <div class="level-badge" id="levelDisplay">${level}</div>
                 <p>XP: <span id="xpDisplay">${xpPoints}</span></p>
                 <div class="progress-bar xp-bar"><div class="progress-fill" id="xpProgressFill" style="width:0%"></div></div>
+                <button class="secondary mt-2" onclick="resetXP()"><i class="fas fa-undo-alt"></i> Reset XP</button>
                 <p class="text-small">Keep going! 🌟</p>
             `;
             setTimeout(() => {
@@ -1261,6 +1211,26 @@
     });
 
     // Final initialisation
+    function loadSettings() {
+        const warn = localStorage.getItem('cozyNook_tabWarning'); if (warn !== null) tabWarningEnabled = warn === 'true';
+        const focus = localStorage.getItem('cozyNook_focusMode'); if (focus !== null) focusModeEnabled = focus === 'true';
+        const dark = localStorage.getItem('cozyNook_darkMode'); if (dark !== null) darkModeEnabled = dark === 'true';
+        const bg = localStorage.getItem('cozyNook_bg');
+        if (bg && BG_PRESETS[bg]) { currentBg = bg; } else { currentBg = 'forest'; }
+        const video = localStorage.getItem('cozyNook_video');
+        if (video && VIDEO_PRESETS[video]) { currentVideo = video; } else { currentVideo = null; }
+        applyBackground(currentBg, currentVideo);
+        applyDarkMode();
+    }
+    function saveTabWarning(val) { localStorage.setItem('cozyNook_tabWarning', val); }
+    function saveFocusMode(val) { localStorage.setItem('cozyNook_focusMode', val); }
+    function saveDarkMode(val) { localStorage.setItem('cozyNook_darkMode', val); }
+    function saveBackground(bgKey, videoKey) { 
+        localStorage.setItem('cozyNook_bg', bgKey); 
+        if (videoKey) localStorage.setItem('cozyNook_video', videoKey);
+        else localStorage.removeItem('cozyNook_video');
+    }
+
     loadSettings();
     applyFocusMode();
     applyDarkMode();
@@ -1270,6 +1240,19 @@
     document.getElementById('exitFocusBtn').addEventListener('click', () => {
         if (focusModeEnabled) toggleFocusMode();
     });
+
+    // Expose functions to global
+    window.toggleTimer = toggleTimer; window.resetTimer = resetTimer; window.updateTimerSettings = updateTimerSettings;
+    window.skipTimerPhase = skipTimerPhase; window.setTimerMode = setTimerMode;
+    window.addTodo = addTodo; window.clearCompletedTodos = clearCompletedTodos;
+    window.loadSpotify = loadSpotify; 
+    window.changeBackground = changeBackground; window.changeVideo = changeVideo; window.randomBackground = randomBackground;
+    window.uploadWallpaper = uploadWallpaper; window.clearCustomBg = clearCustomBg;
+    window.resetLayout = resetLayout; window.clearStorage = clearStorage; window.toggleMinimize = toggleMinimize;
+    window.toggleFocusMode = toggleFocusMode; window.requestNotificationPermission = function() { Notification.requestPermission(); };
+    window.loadPresetPlaylist = loadPresetPlaylist;
+    window.toggleDarkMode = toggleDarkMode;
+    window.releaseDistraction = releaseDistraction; window.resetDistraction = resetDistraction;
 })();
 </script>
 </body>
