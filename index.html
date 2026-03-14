@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>focus nook · fixed & intuitive</title>
+    <title>focus nook</title>
     <!-- leaf favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍃</text></svg>">
     <!-- Font Awesome 6 -->
@@ -262,7 +262,7 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
 
-        /* new current session style */
+        /* current session style */
         .current-session { font-family: monospace; background: rgba(193,123,94,0.1); padding: 8px; border-radius: 40px; text-align: center; margin-top: 10px; }
     </style>
 </head>
@@ -311,10 +311,10 @@
 
     let pads = {};
     let timerInterval = null;
-    // ---------- FIXED TIMER STATE (pomodoroPhase added) ----------
+    // Timer state with pomodoroPhase
     let timerState = {
         mode: 'pomodoro',           // 'pomodoro', 'countdown', 'stopwatch'
-        pomodoroPhase: 'work',      // 'work' or 'break' (only used when mode='pomodoro')
+        pomodoroPhase: 'work',      // 'work' or 'break'
         workMins: 25, breakMins: 5,
         countdownMins: 5,
         secondsLeft: 25 * 60,
@@ -327,7 +327,7 @@
     let dailyGoalSeconds = 7200; // 2 hours
     let xpPoints = 0;
     let level = 1;
-    let focusSessionStart = null; // timestamp when current focus session started (work or countdown)
+    let focusSessionStart = null; // timestamp when current focus session started
 
     let distractionCount = 0;
     let todoItems = [];
@@ -479,7 +479,7 @@
         showXPMessage(source || 'focus time', amount);
     }
 
-    // ---------- RESET XP (new function) ----------
+    // Reset XP
     window.resetXP = function() {
         if (confirm('Reset all XP to 0? Your level will go back to 1.')) {
             xpPoints = 0;
@@ -490,7 +490,7 @@
         }
     };
 
-    // ---------- GOAL: live slider update (no set button) ----------
+    // Goal: live slider update
     window.updateGoalSlider = function(val) {
         dailyGoalSeconds = val * 3600;
         const lbl = document.getElementById('goalLabel');
@@ -499,14 +499,14 @@
         updateGoalUI();
     };
 
-    // ---------- live current session display ----------
+    // live current session display
     function updateCurrentSessionDisplay() {
         const el = document.getElementById('currentSessionDisplay');
         if (!el) return;
         let currentSec = 0;
         if (timerState.active && focusSessionStart !== null) {
-            // only count if we are in a focus-allowed phase (work or countdown)
-            const isWorkPhase = (timerState.mode === 'pomodoro' && timerState.pomodoroPhase === 'work') || timerState.mode === 'countdown';
+            // count only if we are in a focus-allowed phase (work, countdown, or stopwatch)
+            const isWorkPhase = (timerState.mode === 'pomodoro' && timerState.pomodoroPhase === 'work') || timerState.mode === 'countdown' || timerState.mode === 'stopwatch';
             if (isWorkPhase) {
                 currentSec = Math.floor((Date.now() - focusSessionStart) / 1000);
             }
@@ -514,7 +514,7 @@
         el.innerText = formatTime(currentSec, true);
     }
 
-    // ========== TIMER (fixed pomodoro logic) ==========
+    // ========== TIMER ==========
     function formatTime(seconds, extended = false) {
         if (extended) {
             const h = Math.floor(seconds / 3600);
@@ -569,10 +569,9 @@
         const now = Date.now();
         if (timerState.mode === 'stopwatch') {
             timerState.targetTime = now - timerState.stopwatchSeconds * 1000;
-            focusSessionStart = null; // stopwatch doesn't count as focus
+            focusSessionStart = now; // stopwatch counts as focus
         } else {
             timerState.targetTime = now + timerState.secondsLeft * 1000;
-            // set focus start only for work phase or countdown
             if ( (timerState.mode === 'pomodoro' && timerState.pomodoroPhase === 'work') || timerState.mode === 'countdown' ) {
                 focusSessionStart = now;
             } else {
@@ -686,7 +685,7 @@
             if (!timerState.targetTime) return;
             const diff = Math.floor((timerState.targetTime - now) / 1000);
             if (diff <= 0) {
-                endFocusSession();  // session ended naturally
+                endFocusSession();
                 timerState.active = false;
                 timerState.targetTime = null;
                 playGentleChime();
@@ -710,7 +709,7 @@
                 updateTimerDisplay();
             }
         }
-        updateCurrentSessionDisplay(); // update live session timer
+        updateCurrentSessionDisplay();
     }
 
     // ========== TODO (unchanged) ==========
@@ -755,7 +754,7 @@
         saveSpotifyId(playlistId);
     }
 
-    // ========== BACKGROUND (unchanged) ==========
+    // ========== BACKGROUND ==========
     function changeBackground(key) { currentBg = key; applyBackground(key, null); saveBackground(key, null); }
     function changeVideo(key) { currentVideo = key; applyBackground(null, key); saveBackground(null, key); }
     function randomBackground() {
