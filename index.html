@@ -220,6 +220,19 @@
 (function() {
     // ---------- PAD CONFIGURATION ----------
     const PAD_IDS = ['pomodoro', 'todo', 'notes', 'spotify', 'motivation', 'settings', 'distraction', 'goal', 'gamification', 'camera'];
+    // Display names: rename "gamification" to "XP Bar"
+    const DISPLAY_NAMES = {
+        pomodoro: 'Pomodoro',
+        todo: 'Todo',
+        notes: 'Notes',
+        spotify: 'Spotify',
+        motivation: 'Motivation',
+        settings: 'Settings',
+        distraction: 'Distraction',
+        goal: 'Goal',
+        gamification: 'XP Bar',
+        camera: 'Camera'
+    };
     const DEFAULT_LAYOUT = {
         pomodoro:   { x: 40, y: 70, w: 320, h: 380 },
         todo:       { x: 380, y: 70, w: 320, h: 320 },
@@ -784,7 +797,9 @@
         if (minimizedState[id]) pad.style.display = 'none';
         pad.addEventListener('mousedown', () => { topZIndex += 10; pad.style.zIndex = topZIndex; });
         const header = document.createElement('div'); header.className = 'pad-header';
-        header.innerHTML = `<span>${icons[id]} ${id.charAt(0).toUpperCase() + id.slice(1)}</span><span style="cursor:pointer;" onclick="event.stopPropagation(); window.toggleMinimize('${id}')"><i class="fas fa-window-minimize"></i></span>`;
+        // Use display name instead of raw id capitalization
+        const displayTitle = DISPLAY_NAMES[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+        header.innerHTML = `<span>${icons[id]} ${displayTitle}</span><span style="cursor:pointer;" onclick="event.stopPropagation(); window.toggleMinimize('${id}')"><i class="fas fa-window-minimize"></i></span>`;
         pad.appendChild(header);
         const content = document.createElement('div'); content.className = 'pad-content'; pad.appendChild(content);
         const handle = document.createElement('div'); handle.className = 'resize-handle'; pad.appendChild(handle);
@@ -913,9 +928,10 @@
                 resetCameraUI();
             }, 0);
         }
-        // Sidebar button
+        // Sidebar button with display name as title
         const sbBtn = document.createElement('button'); sbBtn.id = `sidebar-${id}`; sbBtn.className = `sidebar-btn ${minimizedState[id] ? 'minimized' : ''}`;
-        sbBtn.innerHTML = icons[id]; sbBtn.title = id.charAt(0).toUpperCase()+id.slice(1);
+        sbBtn.innerHTML = icons[id];
+        sbBtn.title = DISPLAY_NAMES[id] || (id.charAt(0).toUpperCase() + id.slice(1));
         sbBtn.onclick = () => toggleMinimize(id);
         sidebar.appendChild(sbBtn);
         pad.addEventListener('mousedown', () => { lastInteractedPad = id; });
