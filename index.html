@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>focus nook</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.17/dist/interact.min.js"></script>
     <style>
@@ -767,6 +768,7 @@
         timelapseBlob = null;
         const status = document.getElementById('cameraStatus');
         if (status) status.innerText = cameraStream ? 'Camera ready' : 'Click Start Camera';
+        
     }
 
     // ---------- CREATE PADS ----------
@@ -908,6 +910,7 @@
                 document.getElementById('stopTimelapseBtn').onclick = () => stopTimelapseCapture(true);
                 document.getElementById('saveTimelapseBtn').onclick = saveTimelapseVideo;
                 document.getElementById('resetCameraBtn').onclick = resetCameraUI;
+                resetCameraUI();
             }, 0);
         }
         // Sidebar button
@@ -966,10 +969,19 @@
         if (tabWarningEnabled && document.visibilityState === 'hidden') {
             const toast = document.createElement('div'); toast.className = 'tab-toast'; toast.innerHTML = `<i class="fas fa-exclamation-triangle"></i> FOCUS! You left the tab`; document.body.appendChild(toast); setTimeout(()=>toast.remove(),4000);
             if(Notification.permission === 'granted') new Notification('⚠️ Focus Nook', { body: 'Come back to focus!', icon: '🌿' });
-            playGentleChime();
+           let x = 0;
+            const interval = setInterval(() => {
+                playGentleChime();
+                x++;
+
+                if (x >= 10) {
+                    clearInterval(interval); 
+                }
+            }, 200);
+            
         }
     });
-    setInterval(() => updateCurrentSessionDisplay(), 1000);
+    setInterval(() => updateCurrentSessionDisplay(), 10000);
 })();
 </script>
 </body>
